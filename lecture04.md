@@ -2,7 +2,7 @@
 
 ### VPCの作成
 * CIDRはいじらずにデフォルトで作成しました。
-![VPC作成エビデンス](img-lecture04/vpc.png)
+![VPC作成エビデンス](img-lecture04/VPC.png)
 
 ### EC2の作成
 * OSはAmazonLinux 2023で、セキュリティグループはdefaultで作成しました。
