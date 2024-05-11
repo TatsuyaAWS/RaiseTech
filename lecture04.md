@@ -1,18 +1,21 @@
 # 第4回課題
 
 ### VPCの作成
-* CIDRはいじらずにデフォルトで作成しました。
-![VPC作成エビデンス](img-lecture04/VPC.png)
+* 今回は動作確認のため最低限VPCとパブリック・プライベートサブネットとIGWを作成しました。
+![VPC作成エビデンス](img-lecture04/resourcemap.png)
 
 ### EC2の作成
-* OSはAmazonLinux 2023で、セキュリティグループはdefaultで作成しました。
-![EC2の作成エビデンス](img-lecture04/EC2.png)
+* OSはAmazonLinux2にしました。
+![EC2概要](img-lecture04/ec2-info.png)
+* セキュリティグループは動作確認に必要な自分のIPからのSSHとping疎通のためのICMPを許可するよう作成しました。
+![EC2セキュリティグループ](img-lecture04/ec2-security.png)
 
 ### RDSの作成
 * MySQLを選択、無料利用枠のテンプレートで作成しました。
-![RDSの作成エビデンス](img-lecture04/RDS.png)
+![RDS概要](img-lecture04/rds-info.png)
+* VPCは最初に作成したものを選択し、VPCセキュリティグループはEC2からの接続のみを許可するよう設定しました。
+![RDSインバウンドセキュリティグループ](img-lecture04/rds-security-in.png)
+![RDSアウトバウンドセキュリティグループ](img-lecture04/rds-security-out.png)
 
 ### EC2からRDSの接続確認
-* RDS作成時にEC2コンピューティングリソースに接続から作成したEC2インスタンスを選択し接続しました。
-![EC2からRDSの接続エビデンス](img-lecture04/EC2-RDS.png)
-![EC2からRDSの接続エビデンス2](img-lecture04/EC2-RDS2.png)
+![EC2からRDSの接続エビデンス](img-lecture04/ec2-rds-connect.png)
