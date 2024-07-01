@@ -30,7 +30,7 @@
 - ELBのセキュリティグループはHTTP接続のみ許可
 ![ELBセキュリティグループ](images05/elb-secure.png)
 
-## s3接続
+## s3に接続し、画像保存先に設定
 
 - s3バケット作成
 ![s3](images05/s3.png)
