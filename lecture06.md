@@ -4,11 +4,11 @@
 
 * ヘルスチェック異常が１以上のとき
 
-![alarm](./images06/alarm.png)
+![alarm](images06/alarm.png)
 
 * ヘルスチェック異常が１未満のとき
 
-![ok](./images06/ok.png)
+![ok](images06/ok.png)
 
 ## 今まで作成したリソースの見積
 
@@ -16,4 +16,4 @@
 
 ## 現在のEC2の利用料
 
-![billing](./images06/billing.png) 
+![billing](images06/billing.png) 
