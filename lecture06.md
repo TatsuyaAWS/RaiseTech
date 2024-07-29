@@ -1,5 +1,15 @@
 # 第6回課題
 
+## cloudtrailイベント
+
+![cloudtrail](images06/cloudtrail.png)
+
+* イベント名：StartInstances
+### 含まれている内容
+* イベント時間
+* ユーザー名
+* イベントソース
+
 ## ALB のアラームを設定
 
 * ヘルスチェック異常が１以上のとき
