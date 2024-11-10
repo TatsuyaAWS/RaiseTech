@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: raisetech test
+
+Resources:
+  ec2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http&SSH&icmp to client host
+      VpcId: !Ref myvpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 119.231.205.135/24
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  rdssecuritygroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: rds-securitygroup
+      VpcId: !Ref myvpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref ec2SecurityGroup
+      SecurityGroupEgress: 
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  ALBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      VpcId: !Ref myvpc
+      GroupName: ALBsecuritygroup
+      GroupDescription: forlecture10
+      Tags:
+        - Key: "Name"
+          Value: lecture10ALBsecuritygroup
+
+  ALBSecurityGroupIngress: 
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties: 
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: "0.0.0.0/0"
+      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+      
+  ALBSecurityGroupIngress2: 
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties: 
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      CidrIp: "0.0.0.0/0"
+      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+
+  ALBSecurityGroupEgress: 
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties: 
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
