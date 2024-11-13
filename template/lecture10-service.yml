@@ -3,116 +3,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: raisetech test
 
 Resources:
-  myvpc:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags:
-        - Key: Name
-          Value: lecture10-vpc
-
-  publicsubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref myvpc
-      CidrBlock: 10.0.0.0/20
-      AvailabilityZone: "ap-northeast-3a"
-      Tags:
-        - Key: Name
-          Value: lecture10-public1
-
-  publicsubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref myvpc
-      CidrBlock: 10.0.16.0/20
-      AvailabilityZone: "ap-northeast-3b"
-      Tags:
-        - Key: Name
-          Value: lecture10-public2
-
-  privatesubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref myvpc
-      CidrBlock: 10.0.128.0/20
-      AvailabilityZone: "ap-northeast-3a"
-      Tags:
-        - Key: Name
-          Value: lecture10-private1
-
-  privatesubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref myvpc
-      CidrBlock: 10.0.144.0/20
-      AvailabilityZone: "ap-northeast-3b"
-      Tags:
-        - Key: Name
-          Value: lecture10-private2
-
-  raisetechIG:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: lecture10-IG
-
-  AttachCfInternetGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref raisetechIG
-      VpcId: !Ref myvpc
-
-  publicroutetable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref myvpc
-      Tags:
-        - Key: Name
-          Value: lecture10-public
-
-  privateroutetable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref myvpc
-      Tags:
-        - Key: Name
-          Value: lecture10-private
-
-  RouteForPublicSubnet:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref publicroutetable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref raisetechIG
-
-  AssocciateRouteTableForPublicSubnet1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref publicroutetable
-      SubnetId: !Ref publicsubnet1
-
-  AssocciateRouteTableForPublicSubnet2:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref publicroutetable
-      SubnetId: !Ref publicsubnet2
-
-  AssocciateRouteTableForPrivateSubnet1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref privateroutetable
-      SubnetId: !Ref privatesubnet1
-
-  AssocciateRouteTableForPrivateSubnet2:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref privateroutetable
-      SubnetId: !Ref privatesubnet2
-
   ec2instance: 
     Type: AWS::EC2::Instance
     Properties: 
@@ -129,9 +19,9 @@ Resources:
         - AssociatePublicIpAddress: true
           DeleteOnTermination: true
           DeviceIndex: "0"
-          GroupSet:
-            - !Ref ec2SecurityGroup
-          SubnetId: !Ref publicsubnet1
+          GroupSet: 
+            - !ImportValue CrossStackec2SecurityGroupId
+          SubnetId: !ImportValue CrossStackpublicsubnet1
       IamInstanceProfile:
         !Ref S3AccessInstanceProfile
       Tags: 
@@ -158,7 +48,7 @@ Resources:
       DeleteAutomatedBackups: true
       DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups: 
-        - !Ref rdssecuritygroup
+        - !ImportValue CrossStackrdssecuritygroupId
       Tags: 
         - Key: "Name"
           Value: RDS-lecture10
@@ -169,8 +59,8 @@ Resources:
       DBSubnetGroupDescription: SubnetGroup for DB of raisetech
       DBSubnetGroupName: DBSubnet-raisetech
       SubnetIds: 
-        - !Ref privatesubnet1
-        - !Ref privatesubnet2
+        - !ImportValue CrossStackprivatesubnet1
+        - !ImportValue CrossStackprivatesubnet2
       Tags: 
         - Key: Name
           Value: DBSubnet-lecture10
@@ -301,7 +191,7 @@ Resources:
   TargetGroup: 
     Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
     Properties: 
-      VpcId: !Ref myvpc
+      VpcId: !ImportValue CrossStackVpcId
       Name: lecture10TG
       Protocol: HTTP
       Port: 80
@@ -331,10 +221,10 @@ Resources:
           Value: alb
       Scheme: "internet-facing"
       SecurityGroups:
-        - !Ref ALBSecurityGroup
+        - !ImportValue CrossStackALBSecurityGroupId
       Subnets: 
-        - !Ref publicsubnet1
-        - !Ref publicsubnet2
+        - !ImportValue CrossStackpublicsubnet1
+        - !ImportValue CrossStackpublicsubnet2
 
   ALBListener: 
     Type: "AWS::ElasticLoadBalancingV2::Listener"
@@ -350,7 +240,7 @@ Resources:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       RouteTableIds:
-        - !GetAtt [ publicroutetable, RouteTableId ]
-        - !GetAtt [ privateroutetable, RouteTableId ]
+        - !ImportValue CrossStackpublicroutetable
+        - !ImportValue CrossStackprivateroutetable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
-      VpcId: !Ref myvpc
+      VpcId: !ImportValue CrossStackVpcId

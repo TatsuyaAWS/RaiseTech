@@ -7,16 +7,16 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow http&SSH&icmp to client host
-      VpcId: !Ref myvpc
+      VpcId: !ImportValue CrossStackVpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 3000
           ToPort: 3000
-          SourceSecurityGroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          SourceSecurityGroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
@@ -33,7 +33,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties: 
       GroupDescription: rds-securitygroup
-      VpcId: !Ref myvpc
+      VpcId: !ImportValue CrossStackVpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 3306
@@ -46,7 +46,7 @@ Resources:
   ALBSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      VpcId: !Ref myvpc
+      VpcId: !ImportValue CrossStackVpcId
       GroupName: ALBsecuritygroup
       GroupDescription: forlecture10
       Tags:
@@ -60,7 +60,7 @@ Resources:
       FromPort: 80
       ToPort: 80
       CidrIp: "0.0.0.0/0"
-      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+      GroupId: !Ref ALBSecurityGroup
       
   ALBSecurityGroupIngress2: 
     Type: "AWS::EC2::SecurityGroupIngress"
@@ -69,11 +69,25 @@ Resources:
       FromPort: 3000
       ToPort: 3000
       CidrIp: "0.0.0.0/0"
-      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+      GroupId: !Ref ALBSecurityGroup
 
   ALBSecurityGroupEgress: 
     Type: "AWS::EC2::SecurityGroupEgress"
     Properties: 
       IpProtocol: -1
       CidrIp: 0.0.0.0/0
-      GroupId: !GetAtt [ ALBSecurityGroup, GroupId ]
+      GroupId: !Ref ALBSecurityGroup
+
+Outputs:
+  ec2SecurityGroup:
+    Value: !Ref ec2SecurityGroup
+    Export:
+      Name: CrossStackec2SecurityGroupId
+  rdssecuritygroup:
+    Value: !Ref rdssecuritygroup
+    Export:
+      Name: CrossStackrdssecuritygroupId
+  ALBSecurityGroup:
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name: CrossStackALBSecurityGroupId
