@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: raisetech test
+
+Resources:
+  myvpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: lecture10-vpc
+
+  publicsubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myvpc
+      CidrBlock: 10.0.0.0/20
+      AvailabilityZone: "ap-northeast-3a"
+      Tags:
+        - Key: Name
+          Value: lecture10-public1
+
+  publicsubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myvpc
+      CidrBlock: 10.0.16.0/20
+      AvailabilityZone: "ap-northeast-3b"
+      Tags:
+        - Key: Name
+          Value: lecture10-public2
+
+  privatesubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myvpc
+      CidrBlock: 10.0.128.0/20
+      AvailabilityZone: "ap-northeast-3a"
+      Tags:
+        - Key: Name
+          Value: lecture10-private1
+
+  privatesubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myvpc
+      CidrBlock: 10.0.144.0/20
+      AvailabilityZone: "ap-northeast-3b"
+      Tags:
+        - Key: Name
+          Value: lecture10-private2
+
+  raisetechIG:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: lecture10-IG
+
+  AttachCfInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref raisetechIG
+      VpcId: !Ref myvpc
+
+  publicroutetable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myvpc
+      Tags:
+        - Key: Name
+          Value: lecture10-public
+
+  privateroutetable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myvpc
+      Tags:
+        - Key: Name
+          Value: lecture10-private
+
+  RouteForPublicSubnet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref publicroutetable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref raisetechIG
+
+  AssocciateRouteTableForPublicSubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref publicroutetable
+      SubnetId: !Ref publicsubnet1
+
+  AssocciateRouteTableForPublicSubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref publicroutetable
+      SubnetId: !Ref publicsubnet2
+
+  AssocciateRouteTableForPrivateSubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref privateroutetable
+      SubnetId: !Ref privatesubnet1
+
+  AssocciateRouteTableForPrivateSubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref privateroutetable
+      SubnetId: !Ref privatesubnet2
+
+Outputs:
+  myvpc:
+    Value: !Ref myvpc
+    Export:
+      Name: CrossStackVpcId
+  publicsubnet1:
+    Value: !Ref publicsubnet1
+    Export:
+      Name: CrossStackpublicsubnet1
+  publicsubnet2:
+    Value: !Ref publicsubnet2
+    Export:
+      Name: CrossStackpublicsubnet2
+  privatesubnet1:
+    Value: !Ref privatesubnet1
+    Export:
+      Name: CrossStackprivatesubnet1
+  privatesubnet2:
+    Value: !Ref privatesubnet2
+    Export:
+      Name: CrossStackprivatesubnet2
+  publicroutetable:
+    Value: !GetAtt [ publicroutetable, RouteTableId ]
+    Export:
+      Name: CrossStackpublicroutetable
+  privateroutetable:
+    Value: !GetAtt [ privateroutetable, RouteTableId ]
+    Export:
+      Name: CrossStackprivateroutetable

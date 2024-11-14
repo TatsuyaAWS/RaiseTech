@@ -1,0 +1,246 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: raisetech test
+
+Resources:
+  ec2instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      BlockDeviceMappings: 
+        - DeviceName: /dev/xvda
+          Ebs: 
+            DeleteOnTermination: true
+            VolumeSize: 8
+            VolumeType: gp2
+      ImageId: ami-07f130dd997e09f56
+      InstanceType: t2.micro
+      KeyName: raisetech
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          DeviceIndex: "0"
+          GroupSet: 
+            - !ImportValue CrossStackec2SecurityGroupId
+          SubnetId: !ImportValue CrossStackpublicsubnet1
+      IamInstanceProfile:
+        !Ref S3AccessInstanceProfile
+      Tags: 
+        - Key: Name
+          Value: ec2instance-lecture10
+
+  RDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: RDS-lecture10
+      DBInstanceClass: "db.t3.micro"
+      Engine: "mysql"
+      EngineVersion: "8.0.39"
+      MasterUsername: "admin"
+      ManageMasterUserPassword: true
+      DBName: lecture10DB
+      BackupRetentionPeriod: 0
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageType: "gp2"
+      AllocatedStorage: 20
+      StorageEncrypted: true
+      CopyTagsToSnapshot: false
+      DeleteAutomatedBackups: true
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: 
+        - !ImportValue CrossStackrdssecuritygroupId
+      Tags: 
+        - Key: "Name"
+          Value: RDS-lecture10
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: SubnetGroup for DB of raisetech
+      DBSubnetGroupName: DBSubnet-raisetech
+      SubnetIds: 
+        - !ImportValue CrossStackprivatesubnet1
+        - !ImportValue CrossStackprivatesubnet2
+      Tags: 
+        - Key: Name
+          Value: DBSubnet-lecture10
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: lecture10-bucket-tt
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: S3bucket-lecture10
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "IPAllow",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": "arn:aws:s3:::lecture10-bucket-tt",
+              "Condition": {
+                "IpAddress": {"aws:SourceIp": "119.231.205.135/24"}
+              }
+            }
+          ]
+        }
+
+  S3AccessRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+
+  S3AccessPolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: s3access
+      PolicyDocument:
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:*",
+                        "s3-object-lambda:*"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        }
+      Roles:
+      - !Ref S3AccessRole
+
+  S3AccessInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - !Ref S3AccessRole
+
+  ELBLogBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: elblogbucket-tt
+
+  ELBLogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref 'ELBLogBucket'
+      PolicyDocument:
+        Id: ElblogsBucketPolicy
+        Statement:
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - !Sub 'arn:aws:s3:::${ELBLogBucket}/*'
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Action:
+              - s3:GetBucketAcl
+            Resource:
+              - !Sub 'arn:aws:s3:::${ELBLogBucket}'
+            Principal:
+              Service: delivery.logs.amazonaws.com
+          - Sid: AddPerm
+            Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource:
+              - !Sub 'arn:aws:s3:::${ELBLogBucket}/*'
+            Principal:
+              AWS: 383597477331
+
+  TargetGroup: 
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties: 
+      VpcId: !ImportValue CrossStackVpcId
+      Name: lecture10TG
+      Protocol: HTTP
+      Port: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: "/"
+      HealthCheckPort: "traffic-port"
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 30
+      Matcher: 
+        HttpCode: 200
+      Targets: 
+        - Id: !Ref ec2instance
+          Port: 3000
+
+  InternetALB: 
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties: 
+      Name: lecture10ALB
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: true
+        - Key: access_logs.s3.bucket
+          Value: !Ref 'ELBLogBucket'
+        - Key: access_logs.s3.prefix
+          Value: alb
+      Scheme: "internet-facing"
+      SecurityGroups:
+        - !ImportValue CrossStackALBSecurityGroupId
+      Subnets: 
+        - !ImportValue CrossStackpublicsubnet1
+        - !ImportValue CrossStackpublicsubnet2
+
+  ALBListener: 
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties: 
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref InternetALB
+      Port: 3000
+      Protocol: HTTP
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      RouteTableIds:
+        - !ImportValue CrossStackpublicroutetable
+        - !ImportValue CrossStackprivateroutetable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcId: !ImportValue CrossStackVpcId
